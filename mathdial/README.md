@@ -6,7 +6,7 @@
 ## Overview
 This repository serves as the official implementation hub for the paper:
 
-Intent Matters: Enhancing AI Tutoring with Fine-Grained Pedagogical Intent Annotation
+[Intent Matters: Enhancing AI Tutoring with Fine-Grained Pedagogical Intent Annotation](https://arxiv.org/pdf/2506.07626)
 
 Large language models (LLMs) hold great promise for educational applications, particularly in intelligent tutoring systems. However, effective tutoring requires alignment with pedagogical strategies -- something current LLMs lack without task-specific adaptation. In this work, we explore whether fine-grained annotation of teacher intents can improve the quality of LLM-generated tutoring responses. We focus on MathDial, a dialog dataset for math instruction, and apply an automated annotation framework to re-annotate a portion of the dataset using a detailed taxonomy of eleven pedagogical intents. We then fine-tune an LLM using these new annotations and compare its performance to models trained on the original four-category taxonomy. Both automatic and qualitative evaluations show that the fine-grained model produces more pedagogically aligned and effective responses. Our findings highlight the value of intent specificity for controlled text generation in educational settings.
 
@@ -39,4 +39,16 @@ annotation/
 ```
 
 For information on how to use the annotation framework, please refer [here](https://github.com/Kpetyxova/autoTree/tree/main?tab=readme-ov-file#a-fully-automated-pipeline-for-conversational-discourse-annotation-tree-scheme-generation-and-labeling-with-large-language-models) 
+
+
+## BibTeX Citation
+If you find our work useful, please cite us:
+```
+@article{petukhova2025intent,
+  title={Intent Matters: Enhancing AI Tutoring with Fine-Grained Pedagogical Intent Annotation},
+  author={Petukhova, Kseniia and Kochmar, Ekaterina},
+  journal={arXiv preprint arXiv:2506.07626},
+  year={2025}
+}
+```
 
