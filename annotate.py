@@ -162,6 +162,10 @@ def output_tsv_path() -> Path:
     return Path(output_dir) / "dialogs_annotated.tsv"
 
 
+def output_jsonl_path() -> Path:
+    return Path(output_dir) / "dialogs_annotated.jsonl"
+
+
 def save_checkpoint(dialogs: pd.DataFrame) -> None:
     """Write progress atomically so partial runs survive API failures."""
     path = output_tsv_path()
@@ -169,6 +173,13 @@ def save_checkpoint(dialogs: pd.DataFrame) -> None:
     tmp = path.with_suffix(".tsv.tmp")
     dialogs.to_csv(tmp, index=False, sep="\t")
     tmp.replace(path)
+
+    # Also write JSONL so long text with newlines stays intact and viewable.
+    jsonl_tmp = output_jsonl_path().with_suffix(".jsonl.tmp")
+    with jsonl_tmp.open("w") as f:
+        for row in dialogs.to_dict(orient="records"):
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    jsonl_tmp.replace(output_jsonl_path())
 
 
 def load_dialogs_file() -> pd.DataFrame:
