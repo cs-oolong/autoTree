@@ -40,7 +40,7 @@ if not api_key:
 os.environ["OPENAI_API_KEY"] = api_key
 
 # Initialize LLM
-llm_tree = ChatOpenAI(model="gpt-4", temperature=0.4)
+llm_tree = ChatOpenAI(model="gpt-4o-mini", temperature=0.4)
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description="Create taxonomy tree from data")
@@ -107,7 +107,7 @@ chain_group_splits = LLMChain(llm=llm_tree, prompt=prompt_grpoups_splitter)
 
 # Initialize scorer if needed
 if args.config in ["split_selection", "freq_guided_split_selection"]:
-    llm_scorer = ChatOpenAI(model="gpt-4", temperature=0.4)
+    llm_scorer = ChatOpenAI(model="gpt-4o-mini", temperature=0.4)
     scorer_system = prompt_scorer_freq if args.config == "freq_guided_split_selection" else prompt_scorer
     prompt_scorer_splits = ChatPromptTemplate.from_messages([("system", scorer_system), ("human", SCORE_SPLITS_HUMAN)])
     chain_scorer_splits = LLMChain(llm=llm_scorer, prompt=prompt_scorer_splits)
