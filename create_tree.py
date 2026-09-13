@@ -599,7 +599,7 @@ def create_tree_binary(data: pd.DataFrame, description: str) -> Dict[str, Any]:
     tree_txt = Tree()
     build_tree_binary_txt(tree_txt, annotated_data)
     with open(args.output_path.replace(".json", ".txt"), "w") as f:
-        f.write(tree_txt.show())
+        f.write(tree_txt.show(stdout=False))
 
     return annotated_data
 
@@ -633,7 +633,7 @@ def create_tree_non_binary(data: pd.DataFrame, description: str) -> Dict[str, An
     tree_txt = Tree()
     build_tree_non_binary_txt(tree_txt, annotated_data)
     with open(args.output_path.replace(".json", ".txt"), "w") as f:
-        f.write(tree_txt.show())
+        f.write(tree_txt.show(stdout=False))
 
     return annotated_data
 
@@ -693,7 +693,7 @@ def create_tree_for_split_selection(data: pd.DataFrame, description: str) -> Dic
     tree_txt = Tree()
     build_tree_non_binary_txt(tree_txt, final_best_tree)
     with open(args.output_path.replace(".json", ".txt"), "w") as f:
-        f.write(tree_txt.show())
+        f.write(tree_txt.show(stdout=False))
 
     return final_best_tree
 
