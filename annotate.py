@@ -7,7 +7,8 @@ import os
 from dotenv import load_dotenv
 import pandas as pd
 import json
-from typing import List, Dict, Tuple, Any
+from pathlib import Path
+from typing import List, Dict, Tuple, Any, Optional
 import logging
 
 # Set up logging
@@ -157,34 +158,79 @@ def iterate_over_questions_non_binary(
     return current_node["groups"][0]["data"][0]
 
 
+def output_tsv_path() -> Path:
+    return Path(output_dir) / "dialogs_annotated.tsv"
+
+
+def save_checkpoint(dialogs: pd.DataFrame) -> None:
+    """Write progress atomically so partial runs survive API failures."""
+    path = output_tsv_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tsv.tmp")
+    dialogs.to_csv(tmp, index=False, sep="\t")
+    tmp.replace(path)
+
+
+def load_dialogs_file() -> pd.DataFrame:
+    if dialogs_path.endswith(".csv"):
+        return pd.read_csv(dialogs_path)
+    if dialogs_path.endswith(".json"):
+        return pd.read_json(dialogs_path)
+    if dialogs_path.endswith(".tsv"):
+        return pd.read_csv(dialogs_path, sep="\t")
+    raise ValueError(f"Invalid file type: {dialogs_path}")
+
+
+def prepare_checkpoint(dialogs: pd.DataFrame) -> Tuple[pd.DataFrame, int, Optional[Any], Optional[str], Optional[str]]:
+    """
+    Resume from an existing partial output file when row counts match.
+    Returns the working dataframe, next row index, and dialog context state.
+    """
+    path = output_tsv_path()
+    if not path.exists():
+        working = dialogs.copy()
+        working["Annotations"] = pd.NA
+        return working, 0, None, None, None
+
+    checkpoint = pd.read_csv(path, sep="\t")
+    if len(checkpoint) != len(dialogs):
+        logger.warning("Checkpoint row count does not match input dialogs; starting fresh.")
+        working = dialogs.copy()
+        working["Annotations"] = pd.NA
+        return working, 0, None, None, None
+
+    if "Annotations" not in checkpoint.columns:
+        checkpoint["Annotations"] = pd.NA
+
+    completed = checkpoint["Annotations"].notna().sum()
+    if completed == len(checkpoint):
+        logger.info("All %s utterances already annotated; nothing to do.", len(checkpoint))
+        return checkpoint, len(checkpoint), None, None, None
+
+    if completed:
+        logger.info("Resuming from utterance %s/%s.", completed + 1, len(checkpoint))
+        prev = checkpoint.iloc[completed - 1]
+        return checkpoint, completed, prev["dialog_id"], prev["speaker"], prev["text"]
+
+    checkpoint["Annotations"] = pd.NA
+    return checkpoint, 0, None, None, None
+
+
 def main() -> None:
     """
     Main function to process dialog file and generate annotations.
     Reads input dialogs, processes each utterance through decision tree,
-    and saves annotated results.
+    and saves annotated results incrementally after each utterance.
     """
-    annotations_list = []
-
-    # Load dialogs file
-    if dialogs_path.endswith(".csv"):
-        dialogs = pd.read_csv(dialogs_path)
-    elif dialogs_path.endswith(".json"):
-        dialogs = pd.read_json(dialogs_path)
-    elif dialogs_path.endswith(".tsv"):
-        dialogs = pd.read_csv(dialogs_path, sep="\t")
-    else:
-        raise ValueError(f"Invalid file type: {dialogs_path}")
+    dialogs = load_dialogs_file()
+    working, start_idx, dialog_id_prev, previous_speaker, previous_text = prepare_checkpoint(dialogs)
 
     # Load decision tree
     with open(tree_path, "r") as f:
         questions_tree = json.load(f)
 
-    # Process each dialog
-    dialog_id_prev = None
-    previous_speaker = None
-    previous_text = None
-
-    for _, utt in dialogs.iterrows():
+    for idx in range(start_idx, len(working)):
+        utt = working.iloc[idx]
         dialog_id = utt["dialog_id"]
         logger.info(f"Dialog ID: {dialog_id}")
 
@@ -239,13 +285,9 @@ def main() -> None:
         # Update previous utterance info
         previous_speaker = speaker
         previous_text = text
-        annotations_list.append(label)
-
-
-    # Save results
-    dialogs["Annotations"] = annotations_list
-    os.makedirs(output_dir, exist_ok=True)
-    dialogs.to_csv(f"{output_dir}/dialogs_annotated.tsv", index=False, sep="\t")
+        working.at[idx, "Annotations"] = label
+        save_checkpoint(working)
+        logger.info("Saved checkpoint: %s/%s utterances annotated.", idx + 1, len(working))
 
 
 if __name__ == "__main__":
